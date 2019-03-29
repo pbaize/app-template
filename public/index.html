@@ -9,10 +9,15 @@
     <script src="https://unpkg.com/clippyjs@latest"></script>
     <script src="js/main.js"></script>
 </head>
-<body style="background: rgb(200,200,200); -webkit-app-region: 'drag'"></body>
+<body style="background: rgb(200,200,200); -webkit-app-region: drag">
+</body>
 <style>
 .clippy {
-    --webkit-app-region: 'drag'
+    --webkit-app-region: drag;
+    pointer-events: none;
+    position: fixed;
+    top: 1px !important;
+    left: 1px !important;
 }
 </style>
 </html>
