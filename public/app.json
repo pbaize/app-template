@@ -7,8 +7,8 @@
         "autoShow": true,
         "saveWindowState": false,
         "frame": false,
-        "height": 10000,
-        "width": 10000,
+        "defaultHeight": 230,
+        "defaultWidth": 230,
         "alphaMask": {
             "red": 200,
             "green": 200,
@@ -19,6 +19,9 @@
         "arguments": "--disable-gpu --disable-legacy-window",
         "version": "stable"
     },
+    "services": [{
+        "name": "layouts"
+    }],
     "shortcut": {
         "company": "OpenFin",
         "description": "Openfin POC",
