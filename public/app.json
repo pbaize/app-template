@@ -5,10 +5,18 @@
         "uuid": "OpenfinPOC",
         "applicationIcon": "http://localhost:5555/favicon.ico",
         "autoShow": true,
-        "saveWindowState": true
+        "saveWindowState": false,
+        "frame": false,
+        "height": 10000,
+        "width": 10000,
+        "alphaMask": {
+            "red": 200,
+            "green": 200,
+            "blue": 200
+        }
     },
     "runtime": {
-        "arguments": "",
+        "arguments": "--disable-gpu --disable-legacy-window",
         "version": "stable"
     },
     "shortcut": {
