@@ -41,9 +41,9 @@ const randomNum = (n) => {
 }
 
 const keys = ['o', 'e', 'c']
+const phrases = [`I Interoperate!`,`I <3 FDC3!`, `I mine crypto!`, `I'm downloading more RAM!`]
 
-
-const randomBool = () => Math.random() < .5
+const randomBool = () => Math.random() <= .5
 
 const pickName = () => {
     const count = randomNum(3) + 1
@@ -56,5 +56,14 @@ const pickName = () => {
 
 clippy.load('Clippy', agent => {
     agent.show();
-    agent.speak('Welcome to ' + pickName())
+    agent.speak(`Welcome to ${pickName()}. I'm your new Assistant!`)
+    setInterval(() => {
+      try {
+      if (randomBool()) {
+          agent.speak(phrases[randomNum(phrases.length)]);
+      } else {
+          agent.animate();
+      }
+    } catch(e){}
+    }, 20000)
 })
