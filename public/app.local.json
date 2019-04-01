@@ -1,14 +1,13 @@
 {
     "startup_app": {
         "name": "Assistant",
-        "url": "https://os-assistant.netlify.com/index.html",
+        "url": "http://localhost:5555/index.html",
         "uuid": "Assistant",
         "autoShow": true,
         "maximizable": false,
         "showTaskbarIcon": false,
         "saveWindowState": false,
         "frame": false,
-        "alwaysOnTop": true,
         "defaultHeight": 230,
         "defaultWidth": 230,
         "alphaMask": {

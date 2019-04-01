@@ -1,11 +1,11 @@
 const o = [
     'OpenFin',
-    'Open',
-    'Opinionated',
-    'Ok',
-    'Okay',
-    'Odd',
-    'Obnoxious'
+    // 'Open',
+    // 'Opinionated',
+    // 'Ok',
+    // 'Okay',
+    // 'Odd',
+    // 'Obnoxious'
 ]
 const c = [
     'Cloud',
@@ -13,7 +13,7 @@ const c = [
     'Community',
     'Connective',
     'Connected',
-    'Communist',
+    // 'Communist',
     'Clippy'
 ]
 
@@ -29,8 +29,8 @@ const e = [
     'Errorless',
     'Esoteric',
     'Etymological',
-    'Extraneous',
-    'Evangelical'
+    'Extraneous'
+    // 'Evangelical'
 ]
 const s = ['OS', 'Services']
 
@@ -41,7 +41,7 @@ const randomNum = (n) => {
 }
 
 const keys = ['o', 'e', 'c']
-const phrases = [`I Interoperate!`,`I <3 FDC3!`, `I mine crypto!`, `I'm downloading more RAM!`]
+const phrases = [`I Interoperate!`,`I <3 FDC3!`, 'April Fools!', `I mine crypto!`, `I'm downloading more RAM!`]
 
 const randomBool = () => Math.random() <= .5
 
@@ -53,17 +53,37 @@ const pickName = () => {
     const os = randomBool()
     return `${os ? 'The ' : ''}${adjs} ${os ? 'OS' : 'Services'}`
 }
+let interval;
+let _agent;
 
 clippy.load('Clippy', agent => {
+    const main = () => {
+        agent.speak(`Welcome to ${pickName()}. I'm your new Assistant!`)
+        agent.animate()
+        agent.speak('April Fools!')
+        // if (interval !== undefined) clearInterval(interval)
+        // interval = setInterval(async () => {
+        //     try {
+        //         if (randomBool()) {
+        //             await agent.speak(phrases[randomNum(phrases.length)]);
+        //         } else {
+        //             await agent.animate();
+        //         }
+        //     } catch (e) { }
+        // }, 20000)
+    }
     agent.show();
-    agent.speak(`Welcome to ${pickName()}. I'm your new Assistant!`)
-    setInterval(() => {
-      try {
-      if (randomBool()) {
-          agent.speak(phrases[randomNum(phrases.length)]);
-      } else {
-          agent.animate();
-      }
-    } catch(e){}
-    }, 20000)
+    main(agent)
+    setInterval(async () => {
+        try {
+            if (randomBool()) {
+                await agent.speak(phrases[randomNum(phrases.length)]);
+            } else {
+                await agent.animate();
+            }
+        } catch (e) { }
+    }, 30000)
+    if (fin) {
+        fin.Window.getCurrentSync().on('focused', () => main(agent))
+    }
 })
