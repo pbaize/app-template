@@ -1,10 +1,10 @@
 {
     "startup_app": {
         "name": "OpenfinPOC",
-        "url": "http://localhost:5555/index.html",
+        "url": "http://localhost:5555/iframe.html",
         "uuid": "OpenfinPOC",
         "applicationIcon": "http://localhost:5555/favicon.ico",
-        "autoShow": true,
+        "autoShow": false,
         "saveWindowState": false,
         "backgroundColor": "#1c1c31",
         "frame": false,
@@ -12,8 +12,12 @@
     },
     "runtime": {
         "arguments": "--enable-mesh --security-realm=realm --v=1",
-        "version": "12.69.43.15"
+        "version": "99.99.99.99"
     },
+    "services": [{
+        "name": "layouts",
+        "manifestUrl": "https://cdn.openfin.co/demos/cs-layouts/app-test.json"
+    }],
     "shortcut": {
         "company": "OpenFin",
         "description": "Openfin POC",

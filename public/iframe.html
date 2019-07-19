@@ -1,6 +1,14 @@
-<h1 id="name"></h1>
-<h1 id='name2'></h1>
+
 <script>
-document.getElementById('name').innerText = fin.Window.getCurrentSync().identity.name
-document.getElementById('name2').innerText = fin.desktop.Window.getCurrent().name
+const urls = ['https://google.com', 'https://bing.com', 'https://duckduckgo.com'];
+const uuid = fin.Window.getCurrentSync().identity.uuid
+urls.forEach(async (url, i) => {
+    const winId = {uuid, name: `win${i}`};
+    const viewId =  {uuid, name: `view${i}`}
+    await fin.InterApplicationBus.subscribe(winId, 'up',async  () => {
+        const view = await fin.BrowserView.create({ ...viewId, url, target: winId })
+        fin.InterApplicationBus.send(winId, 'tab-added', { ids: [viewId] })
+    })
+    const win = await fin.Window.create({...winId, url: location.origin + '/index.html', autoShow: true, frame: false})
+}) 
 </script>
