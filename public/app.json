@@ -16,7 +16,11 @@
     },
     "services": [{
         "name": "layouts",
-        "manifestUrl": "https://cdn.openfin.co/demos/cs-layouts/app-test.json"
+        "manifestUrl": "https://cdn.openfin.co/demos/cs-layouts/app-test.json",
+        "tabstrip": {
+            "url": "https://notarealtabstrip.com/tabstrip.html",
+            "height": 20
+        }
     }],
     "shortcut": {
         "company": "OpenFin",

@@ -2,6 +2,26 @@
 // navigator.serviceWorker.register('../serviceworker.js');
 
 var config = {
+    settings: {
+        hasHeaders: true,
+        constrainDragToContainer: false,
+        reorderEnabled: true,
+        selectionEnabled: false,
+        popoutWholeStack: false,
+        blockedPopoutsThrowError: false,
+        closePopoutsOnUnload: false,
+        showPopoutIcon: true,
+        showMaximiseIcon: true,
+        showCloseIcon: true
+    },
+    dimensions: {
+        borderWidth: 0,
+        minItemHeight: 10,
+        minItemWidth: 10,
+        headerHeight: 20,
+        dragProxyWidth: 300,
+        dragProxyHeight: 200
+    },
     content: [{
         type: 'stack',
         content: []
@@ -14,102 +34,52 @@ if (typeof fin !== 'undefined') {
 var myLayout;
 const views = [];
 window.views = views;
+let maximized = false;
 //once the DOM has loaded and the OpenFin API is ready
 async function init() {
 
-    // Add event listeners to the top bar icons
-    document.getElementsByClassName("openfin-top-bar-minimize")[0].addEventListener('click', function () {
-        fin.desktop.Window.getCurrent().minimize();
-    });
-
-    document.getElementsByClassName("openfin-top-bar-close-x")[0].addEventListener('click', function () {
-        fin.desktop.Window.getCurrent().close();
-    });
-
-    var maximized = false;
-
-    document.getElementsByClassName("openfin-top-bar-maximize")[0].addEventListener('click', function (e) {
-        if (maximized === false) {
-            fin.desktop.Window.getCurrent().maximize();
-            e.srcElement.src = "https://cdn.openfin.co/demos/whiteboard/apps/shared/libs/top-bar/top-bar-images/restore.svg"
-            maximized = true;
-        } else {
-            fin.desktop.Window.getCurrent().restore();
-            e.srcElement.src = "https://cdn.openfin.co/demos/whiteboard/apps/shared/libs/top-bar/top-bar-images/maximize.svg"
-            maximized = false;
-        }
-    });
-    let url;
-    try {
-        const res = await fetch('url.json');
-        const body = await res.json();
-        console.log(body);
-        if (body.url) url = body.url;
-    } catch (error) {
-        console.error(error);
-        url = 'https://bing.com';
-    }
-    //get a reference to the current Application.
     const app = await fin.Application.getCurrent();
     const win = await fin.Window.getCurrent();
     const size = await win.getBounds();
     await win.updateOptions({
         frame: false
     })
-    // app.on('run-requested', () => location.reload());
-
-    // const view = await fin.BrowserView.create({
-    //       uuid: win.identity.uuid,
-    //       name: 'view',
-    //       url:'https://www.duckduckgo.com',
-    //       backgroundColor: '#fff',
-    //       autoResize: { width: false, height: false },
-    //       bounds: {
-    //             x: 5,
-    //             y: 35,
-    //             width: size.width - 10,
-    //             height: size.height - 40
-    //       },
-    //       target: win.identity
-    // });
-
-    // window.bv = view;
-
-
 
     myLayout = new GoldenLayout(config);
     window.myLayout = myLayout
 
     myLayout.registerComponent('browserView', function (container, state) {
-        const elementId = `bv-container-${state.name}`
+        const elementId = `bv-container-${state.identity.name}`
         const element = $(`<div class="bv-container" id="${elementId}"></div>`);
         // Append it to the DOM
         container.getElement().append(element);
     });
+
+    myLayout.on('stackCreated', function (stack) {
+
+        /*
+         * Accessing the DOM element that contains the popout, maximise and * close icon
+         */
+        stack.header.controlsContainer.find('.lm_popout').first().off('click')
+        stack.header.controlsContainer.find('.lm_popout').first().click((e) => {
+            if (stack.parent.isRoot && stack.contentItems.length === 1) {
+                e.stopPropagation();
+                return;
+            }
+            const view = stack.getActiveContentItem().config.componentState.identity
+            fin.InterApplicationBus.send({uuid:'*'}, 'tearout', {views: [view]})
+            stack.getActiveContentItem().remove()
+        });
+        stack.header.controlsContainer.find('.lm_maximise').first().click((e) => {
+            const view = fin.BrowserView.wrapSync(stack.getActiveContentItem().config.componentState.identity)
+            view.hide().then(() => view.show())
+            maximized ? win.restore() : win.maximize()
+            maximized = !maximized
+
+        });
+
+    });
     myLayout.init();
-
-    // const obs = addBrowserView(view)
-
-    // obs()
-    // const view2 = await fin.BrowserView.create({
-    //     uuid: win.identity.uuid,
-    //     name: 'view2',
-    //     url: 'https://www.bing.com',
-    //     backgroundColor: '#fff',
-    //     autoResize: { width: false, height: false },
-    //     bounds: {
-    //         x: 5,
-    //         y: 35,
-    //         width: size.width - 10,
-    //         height: size.height - 40
-    //     },
-    //     target: win.identity
-    // });
-    // const obs2 = addBrowserView(view2);
-    // obs2()
-
-
-
 
     await fin.InterApplicationBus.subscribe({ uuid: '*' }, 'tab-added', async ({ ids, active }) => {
         // console.log(ids)
@@ -123,31 +93,26 @@ async function init() {
     })
     fin.InterApplicationBus.send({uuid: win.identity.uuid, name: win.identity.uuid}, 'up') 
     await fin.InterApplicationBus.subscribe({ uuid: '*' }, 'should-tab-to', async (id) => {
-        fin.InterApplicationBus.send(id, 'tab-added', { ids: views.map(v => v.identity) });
-        // let curView;
+        const views = myLayout.root.getItemsByFilter((item) => item.isComponent).map(item => fin.BrowserView.wrapSync(item.config.componentState.identity))
+        await fin.InterApplicationBus.send(id, 'tab-added', { ids: views.map(v => v.identity) });
         Promise.all(views.map(async (view, i) => {
-            // if (i === activeView) {
-            //     curView = view;
-            //     await view.hide();
-            // }
             await view.attach(id);
         }))
-        // await curView.hide();
-        // await curView.show();
         await win.close();
     })
 }
 function addBrowserView(view) {
-    // setInterval(async () => {
-    //     const { title } = await view.getInfo();
-    //     const titleSpan = document.querySelector('.openfin-top-bar-title');
-    //     titleSpan.innerHTML = title;
-    // }, 500);
+    setInterval(async () => {
+        const { title } = await view.getInfo();
+        const [item] = myLayout.root.getItemsById(view.identity.name)
+        if (item) item.setTitle(title)
+    }, 500);
     const elementId = `bv-container-${view.identity.name}`
     var newItemConfig = {
         type: 'component',
+        id: view.identity.name,
         componentName: 'browserView',
-        componentState: { name: view.identity.name }
+        componentState: { identity: view.identity }
     };
     myLayout.root.contentItems[0].addChild(newItemConfig)
     const ro = new ResizeObserver(entries => {
@@ -166,12 +131,12 @@ function addBrowserView(view) {
             // right
             // bottom
             view.setBounds({
-                height: Math.floor(cr.height),
-                width: Math.floor(cr.width),
-                y: Math.floor(rect.top),
-                x: Math.floor(rect.left),
-                right: Math.floor(rect.right),
-                bottom: Math.floor(rect.bottom)
+                height: Math.ceil(cr.height),
+                width: Math.ceil(cr.width),
+                y: Math.ceil(rect.top),
+                x: Math.ceil(rect.left),
+                right: Math.ceil(rect.right),
+                bottom: Math.ceil(rect.bottom)
             }).catch(console.error).then(() => console.log('did it'));
         }
     });

@@ -39,7 +39,7 @@
             height: 35px;
             top: 0;
             left: 0;
-
+            display: none;
             background: #1C1C31;
             display: flex;
             align-items: center;
@@ -154,22 +154,28 @@
         }
         div.bv-container {
             margin: 0px auto;
-            width: 99%;
-            border: 1px solid red;
+            width: 100%;
+            /* border: 1px solid red; */
             float: left;
             display: block;
-            height: 90%;
+            height: 100%;
         }
-
+       
         .lm_goldenlayout {
-            padding-top:5%;
+            /* padding-top:35px; */
+        }
+        .lm_header {
+           -webkit-app-region: drag;
+        }
+        .lm_header * {
+           -webkit-app-region: no-drag;
         }
     </style>
     <script type="text/javascript" src="//code.jquery.com/jquery-1.11.1.min.js"></script>
     <script type="text/javascript" src="//golden-layout.com/assets/js/goldenlayout.min.js"></script>
     <link type="text/css" rel="stylesheet" href="//golden-layout.com/assets/css/goldenlayout-base.css" />
     <link type="text/css" rel="stylesheet" href="//golden-layout.com/assets/css/goldenlayout-dark-theme.css" />
-    <div class="openfin-top-bar">
+    <!-- <div class="openfin-top-bar">
         <div class="openfin-top-bar-drag">
             <span class="openfin-top-bar-title">Loading<span>...</span></span>
         </div>
@@ -179,7 +185,7 @@
             src="https://cdn.openfin.co/demos/whiteboard/apps/shared/libs/top-bar/top-bar-images/maximize.svg" alt="">
         <img class="openfin-top-bar-close-x"
              src="https://cdn.openfin.co/demos/whiteboard/apps/shared/libs/top-bar/top-bar-images/close-x.svg" alt="">
-    </div>
+    </div> -->
     <script type="module" src="js/main.js"></script>
 </body>
 

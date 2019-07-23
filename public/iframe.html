@@ -2,13 +2,30 @@
 <script>
 const urls = ['https://google.com', 'https://bing.com', 'https://duckduckgo.com'];
 const uuid = fin.Window.getCurrentSync().identity.uuid
-urls.forEach(async (url, i) => {
+let i = 0
+urls.forEach(async (url) => {
+    i++;
     const winId = {uuid, name: `win${i}`};
     const viewId =  {uuid, name: `view${i}`}
-    await fin.InterApplicationBus.subscribe(winId, 'up',async  () => {
+    await fin.InterApplicationBus.subscribe(winId, 'up', async  () => {
         const view = await fin.BrowserView.create({ ...viewId, url, target: winId })
         fin.InterApplicationBus.send(winId, 'tab-added', { ids: [viewId] })
     })
     const win = await fin.Window.create({...winId, url: location.origin + '/index.html', autoShow: true, frame: false})
+    win.on('reloaded', () => {
+                fin.InterApplicationBus.send(winId, 'tab-added', { ids: [viewId] })
+    })
 }) 
+fin.InterApplicationBus.subscribe({uuid, name: '*'}, 'tearout', async ({views}) => {
+    i++
+    const winId = { uuid, name: `win${i}` };
+    await fin.InterApplicationBus.subscribe(winId, 'up', async () => {
+        fin.InterApplicationBus.send(winId, 'tab-added', { ids: views })
+    })
+    const win = await fin.Window.create({ ...winId, url: location.origin + '/index.html', autoShow: true, frame: false })
+    views.forEach((id) => {
+        const view = fin.BrowserView.wrapSync(id)
+        view.attach(winId)
+    })
+})
 </script>
