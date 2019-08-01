@@ -32,8 +32,6 @@ if (typeof fin !== 'undefined') {
     init()
 }
 var myLayout;
-const views = [];
-window.views = views;
 let maximized = false;
 //once the DOM has loaded and the OpenFin API is ready
 async function init() {
@@ -66,30 +64,40 @@ async function init() {
                 e.stopPropagation();
                 return;
             }
-            const view = stack.getActiveContentItem().config.componentState.identity
+            const view = stack.getActiveContentItem().container.getState().identity
             fin.InterApplicationBus.send({uuid:'*'}, 'tearout', {views: [view]})
             stack.getActiveContentItem().remove()
         });
         stack.header.controlsContainer.find('.lm_maximise').first().click((e) => {
-            const view = fin.BrowserView.wrapSync(stack.getActiveContentItem().config.componentState.identity)
+            const view = fin.BrowserView.wrapSync(stack.getActiveContentItem().container.getState().identity)
             view.hide().then(() => view.show())
             maximized ? win.restore() : win.maximize()
             maximized = !maximized
-
         });
-
     });
+
+    //Incomplete closing code
+    // myLayout.on('itemDestroyed', (e) => {
+    //     switch (e.type) {
+    //         case 'component':
+    //             // const view = fin.BrowserView.wrapSync(e.container.getState().identity)
+    //             // view.destroy();
+    //             break;
+    //         case 'stack':
+    //         default:
+    //             if (myLayout.root.contentItems.length === 1) {
+    //                 console.log('closing')
+    //                 win.close().catch(console.error);
+    //             }
+    //             console.log(myLayout.root.contentItems.length)
+    //             break;
+    //     }
+    // })
     myLayout.init();
 
     await fin.InterApplicationBus.subscribe({ uuid: '*' }, 'tab-added', async ({ ids, active }) => {
-        // console.log(ids)
         const newViews = ids.map(id => fin.BrowserView.wrapSync(id));
-        views.push(...newViews)
-        // console.log(newViews)
-        // const oldCount = views.length;
-        // window.views.push(...newViews);
-        // activeView = oldCount + active;
-        newViews.map(addBrowserView).map(f => f())
+        newViews.map(addBrowserView)
     })
     fin.InterApplicationBus.send({uuid: win.identity.uuid, name: win.identity.uuid}, 'up') 
     await fin.InterApplicationBus.subscribe({ uuid: '*' }, 'should-tab-to', async (id) => {
@@ -100,6 +108,8 @@ async function init() {
         }))
         await win.close();
     })
+    const secondView = await fin.BrowserView.create({...win.identity, name: win.identity.name+'view', url: 'https://baize.dev', target: win.identity})
+    addBrowserView(secondView)
 }
 function addBrowserView(view) {
     setInterval(async () => {
@@ -121,32 +131,20 @@ function addBrowserView(view) {
             console.log('Element:', entry.target);
             console.log(`Element size: ${cr.width}px x ${cr.height}px`);
             console.log(`Element padding: ${cr.top}px ; ${cr.left}px`);
-
             var rect = entry.target.getBoundingClientRect();
             console.log(rect.top, rect.right, rect.bottom, rect.left);
-            // height
-            // width
-            // top
-            // left
-            // right
-            // bottom
             view.setBounds({
                 height: Math.ceil(cr.height),
                 width: Math.ceil(cr.width),
                 y: Math.ceil(rect.top),
                 x: Math.ceil(rect.left),
-                right: Math.ceil(rect.right),
-                bottom: Math.ceil(rect.bottom)
             }).catch(console.error).then(() => console.log('did it'));
         }
     });
-    return () => {
-        const bvContainer = document.getElementById(elementId);
-        ro.observe(bvContainer);
-    }
+    const bvContainer = document.getElementById(elementId);
+    ro.observe(bvContainer);
 }
 var mainWindow = fin.desktop.Window.getCurrent();
-
 // Add css and HTML for the top bar.
 
 let backgroundColor = "#1C1C31";

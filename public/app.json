@@ -1,7 +1,7 @@
 {
     "startup_app": {
         "name": "OpenfinPOC",
-        "url": "http://localhost:5555/iframe.html",
+        "url": "http://localhost:5555/launcher.html",
         "uuid": "OpenfinPOC",
         "applicationIcon": "http://localhost:5555/favicon.ico",
         "autoShow": false,

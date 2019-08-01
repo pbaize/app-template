@@ -1,6 +1,6 @@
 
 <script>
-const urls = ['https://google.com', 'https://bing.com', 'https://duckduckgo.com'];
+const urls = ['https://google.com', 'https://atom.finance/quote/LYFT', 'https://atom.finance/quote/GOOG', 'https://atom.finance/quote/GS'];
 const uuid = fin.Window.getCurrentSync().identity.uuid
 let i = 0
 urls.forEach(async (url) => {
@@ -12,9 +12,6 @@ urls.forEach(async (url) => {
         fin.InterApplicationBus.send(winId, 'tab-added', { ids: [viewId] })
     })
     const win = await fin.Window.create({...winId, url: location.origin + '/index.html', autoShow: true, frame: false})
-    win.on('reloaded', () => {
-                fin.InterApplicationBus.send(winId, 'tab-added', { ids: [viewId] })
-    })
 }) 
 fin.InterApplicationBus.subscribe({uuid, name: '*'}, 'tearout', async ({views}) => {
     i++
@@ -28,4 +25,5 @@ fin.InterApplicationBus.subscribe({uuid, name: '*'}, 'tearout', async ({views}) 
         view.attach(winId)
     })
 })
+
 </script>
