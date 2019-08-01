@@ -108,8 +108,7 @@ async function init() {
         }))
         await win.close();
     })
-    const secondView = await fin.BrowserView.create({...win.identity, name: win.identity.name+'view', url: 'https://baize.dev', target: win.identity})
-    addBrowserView(secondView)
+
 }
 function addBrowserView(view) {
     setInterval(async () => {
