@@ -2,9 +2,20 @@
   "name": "openfin-template",
   "version": "0.0.0",
   "devDependencies": {
-    "@types/openfin": "latest",
-    "hadouken-js-adapter": "latest",
-    "live-server": "latest"
+    "@types/node": "^10.0.3",
+    "gts": "^1.1.0",
+    "hadouken-js-adapter": "^1.44.1",
+    "live-server": "latest",
+    "typescript": "~3.5.0"
   },
-  "license": "Apache-2.0"
+  "license": "Apache-2.0",
+  "scripts": {
+    "check": "gts check",
+    "clean": "gts clean",
+    "compile": "tsc -p . && sed -i '' '1,2d' \"public/build/src/index.js\"",
+    "fix": "gts fix",
+    "prepare": "npm run compile",
+    "pretest": "npm run compile",
+    "posttest": "npm run check"
+  }
 }
