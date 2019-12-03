@@ -63,7 +63,7 @@ export interface Listener {
   /**
    * Unsubscribe the listener object.
    */
-  unsubscribe: () => void;
+  unsubscribe: () => Promise<void>;
 }
 
 /**
@@ -154,14 +154,6 @@ export interface DesktopAgent {
   findIntentsByContext(context: Context): Promise<AppIntent[]>;
 
   /**
-   * Publishes context to other apps on the desktop.
-   * ```javascript
-   *  agent.broadcast(context);
-   * ```
-   */
-  broadcast(context: Context): void;
-
-  /**
    * Raises an intent to the desktop agent to resolve.
    * ```javascript
    * //raise an intent to start a chat with a given contact
@@ -182,10 +174,5 @@ export interface DesktopAgent {
   addIntentListener(
     intent: string,
     handler: (context: Context) => void
-  ): Listener;
-
-  /**
-   * Adds a listener for incoming context broadcast from the Desktop Agent.
-   */
-  addContextListener(handler: (context: Context) => void): Listener;
+  ): Promise<Listener>;
 }

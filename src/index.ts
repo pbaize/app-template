@@ -8,6 +8,7 @@
 import {
   Identity,
   Fin,
+  Window,
 } from '../node_modules/hadouken-js-adapter/out/types/src/main';
 import { IntentResolution, Listener, DesktopAgent, AppIntent } from './fdc3';
 import { ChannelClient } from '../node_modules/hadouken-js-adapter/out/types/src/api/interappbus/channel/client';
@@ -19,25 +20,27 @@ const agents = new Map<string, FDC3Agent>();
 // tslint:disable-next-line: ban-ts-ignore
 //@ts-ignore
 const me: Identity = fin.wire.me;
-let subscribed: string | null = null;
-let globalContextListeners: Array<(c: any) => void> = [];
 let globalIntentListeners: Array<[string, (c: any) => void]> = [];
+const ready = init();
 // tslint:disable-next-line: ban-ts-ignore
 //@ts-ignore
 window.fdc3 = {
   connections: connectionsToAgents,
   agents,
+  ready,
   Agent: {
     create: async (name: string) => {
       const channel = 'FDC3P2P' + name;
       await fin.InterApplicationBus.subscribe(
         { uuid: '*' },
         'FDC3P2P/get-all-agents',
-        (_: any, source: Identity) =>
+        (_: any, source: Identity) => {
+          console.log('agent-request-received')
           fin.InterApplicationBus.send(source, 'FDC3P2P/add-agent', {
             channel,
             name,
-          })
+          }).then(() => console.log(source)).catch(console.error)
+        }
       );
       const provider = await fin.InterApplicationBus.Channel.create(channel);
       const agent = new FDC3Agent(name, provider);
@@ -63,19 +66,12 @@ window.fdc3 = {
       return new FDC3Client(name, client);
     },
   },
-  broadcast(context: object): void {
-    if (subscribed === null) {
-      fin.InterApplicationBus.publish('FDC3P2P/globalbroadcast', context);
-    }
-    for (const client of connectionsToAgents.values()) {
-      client.broadcast(context);
-    }
-  },
   async raiseIntent(
     intent: string,
     context: object,
     target?: string | undefined
   ): Promise<IntentResolution> {
+    await ready;
     if (connectionsToAgents.size === 0) {
       throw new Error('NoAppsFound');
     }
@@ -97,78 +93,67 @@ window.fdc3 = {
       }
     });
   },
-  addIntentListener(intent: string, handler: (context: any) => void): Listener {
+  async addIntentListener(intent: string, handler: (context: any) => void) {
+    await ready;
     const tuple: [string, (c: any) => void] = [intent, handler];
     globalIntentListeners.push(tuple);
-    const unsubscribes: Array<() => void> = [];
+    const unsubscribes: Array<() => Promise<void>> = [];
     for (const client of connectionsToAgents.values()) {
-      const unsub = client.addIntentListener(intent, handler).unsubscribe;
-      unsubscribes.push(unsub);
+      const { unsubscribe } = await client.addIntentListener(intent, handler);
+      unsubscribes.push(unsubscribe);
     }
-    const unsubscribe = () => {
+    const unsubscribe = async () => {
       globalIntentListeners = globalIntentListeners.filter(x => x !== tuple);
-      unsubscribes.forEach(x => x());
+      await Promise.all(unsubscribes.map(x => x()));
     };
     return { unsubscribe };
   },
-  addContextListener(handler: (context: object) => void): Listener {
-    globalContextListeners.push(handler);
-    const unsubscribes: Array<() => void> = [];
-    for (const client of connectionsToAgents.values()) {
-      const unsub = client.addContextListener(handler).unsubscribe;
-      unsubscribes.push(unsub);
-    }
-    const unsubscribe = () => {
-      globalContextListeners = globalContextListeners.filter(
-        x => x !== handler
-      );
-      unsubscribes.forEach(x => x());
-    };
-    return {
-      unsubscribe,
-    };
-  },
 };
+
 async function init() {
+  // tslint:disable-next-line: ban-ts-ignore
+  //@ts-ignore
+  await new Promise(r => window.addEventListener('DOMContentLoaded', r))
+  if(!fin.me) {
+      // tslint:disable-next-line: ban-ts-ignore
+  //@ts-ignore
+    fin.me = fin.wire.me
+  }
   await fin.InterApplicationBus.subscribe(
     { uuid: '*' },
     'FDC3P2P/add-agent',
     async (info: any, source: Identity) => {
-      if (!agents.has(info.name)) {
+      if (!agents.has(info.name) && !(source.name === fin.me.name && source.uuid === fin.me.uuid)) {
+        console.log(info, source)
         const channel = await fin.InterApplicationBus.Channel.connect(
           info.channel
         );
         const client = new FDC3Client(info.name, channel);
         connectionsToAgents.set(info.name, client);
-        globalContextListeners.forEach(f => client.addContextListener(f));
         globalIntentListeners.forEach(([i, f]) =>
           client.addIntentListener(i, f)
         );
       }
     }
   );
-  await fin.InterApplicationBus.subscribe(
-    { uuid: '*' },
-    'FDC3P2P/globalbroadcast',
-    (context: any) => {
-      if (subscribed === null) globalContextListeners.forEach(f => f(context));
-    }
-  );
   await fin.InterApplicationBus.publish('FDC3P2P/get-all-agents', me);
 }
-init();
 class FDC3Client implements DesktopAgent {
-  private intentListeners: any[];
-  private contextListeners: any[];
-  private iabTopic: string | null = null;
-  private channelId: string | null = null;
+  private intentListeners: Map<string, (context: object) => void>;
   constructor(public name: string, private client: ChannelClient) {
-    this.intentListeners = [];
-    this.contextListeners = [];
-    this.client.register('joined-channel', async ({previous, joining}: {previous: any, joining: any}) => {
-        if (previous) await this._leaveChannel(previous)
-        await this._joinChannel(joining)
-    });
+    this.intentListeners = new Map();
+    client.setDefaultAction(() => {
+      throw new Error('FDC3 Client does not support this method');
+    })
+    client.register('intent-raised', ({intent, context}) => {
+      if (this.intentListeners.has(intent)) {
+        // tslint:disable-next-line: ban-ts-ignore
+        //@ts-ignore
+        return this.intentListeners.get(intent)(context)
+      } else {
+        throw new Error("no intent registered");
+      }
+    })
   }
 
   findIntent = (
@@ -180,11 +165,6 @@ class FDC3Client implements DesktopAgent {
   findIntentsByContext = (context: object): Promise<AppIntent[]> => {
     throw new Error('Method not implemented.');
   };
-  broadcast = (context: object): void => {
-    if (this.iabTopic) {
-      fin.InterApplicationBus.publish(this.iabTopic, context);
-    }
-  };
   raiseIntent = (
     intent: string,
     context: object,
@@ -192,110 +172,43 @@ class FDC3Client implements DesktopAgent {
   ): Promise<IntentResolution> => {
     return this.client.dispatch('raise-intent', { intent, context, target });
   };
-  addIntentListener = (
+  addIntentListener = async (
     intent: string,
     handler: (context: object) => void
-  ): Listener => {
-    throw new Error('Method not implemented.');
-  };
-  addContextListener = (handler: (context: object) => void): Listener => {
-    this.contextListeners.push(handler);
-    const unsubscribe = () => {
-      this.contextListeners = this.contextListeners.filter(x => x !== handler);
-    };
-    return {
-      unsubscribe,
-    };
-  };
-  private _joinChannel = async ({ id, iabTopic }: any) => {
-    if (id !== 'default') {
-      subscribed = this.name;
+  ): Promise<Listener> => {
+    if (this.intentListeners.has(intent)) {
+      throw new Error('Listener already registered for intent');
+    } else {
+      this.intentListeners.set(intent, handler);
+      await this.client.dispatch('intent-listener-added', { intent });
+      return {
+        unsubscribe: async () => {
+          this.intentListeners.delete('intent');
+          await this.client.dispatch('intent-listener-removed', { intent });
+        },
+      };
     }
-    this.iabTopic = iabTopic;
-    await fin.InterApplicationBus.subscribe(
-      { uuid: '*' },
-      iabTopic,
-      this._handleContext
-    );
   };
-
-  private _leaveChannel = async ({ iabTopic }: { iabTopic: string }) => {
-    if (subscribed === this.name) {
-      subscribed = null;
-    }
-    this.iabTopic = null;
-    this.channelId = null;
-    await fin.InterApplicationBus.unsubscribe(
-      { uuid: '*' },
-      iabTopic,
-      this._handleContext
-    );
-  };
-
-  async getAllChannels() {
-    const info = await this.client.dispatch('get-channel-info');
-    const decorateInfo = (info: any) =>
-      Object.assign(info, {
-        join: (identity = me) => this.joinChannel(info.id, me),
-      });
-    return info.map(decorateInfo);
-  }
-  private async joinChannel(channelId: string, identity: Identity = me) {
-    await this.client.dispatch('join-channel', {
-      channelId,
-      identity,
-      previousChannel: this.channelId,
-    });
-  }
   open = async (name: string, context?: any) => {
     await this.client.dispatch('open', { name, context });
-  };
-  private _handleContext = (context: any) => {
-    this.contextListeners.forEach(f => {
-      f(context);
-    });
   };
 }
 
 class FDC3Agent {
   channels = new Map<string, any>();
+  private intentListenerAddedListeners: Array<(intent: any, identity: Identity) => void> = [];
   constructor(public name: string, public provider: ChannelProvider) {
-    this.createChannel({ id: 'default' });
-    provider.register(
-      'join-channel',
-      async ({
-        channelId,
-        identity
-      }: {
-        channelId: string;
-        previousChannel: string;
-        identity: Identity;
-      }) => {
-        if (!this.channels.has(channelId)) {
-          throw new Error('Could not locate requested channel');
-        }
-        const previous: any = Array.from(this.channels.values()).find(x => x.members.some(id => id.uuid === identity.uuid && id.name === identity.name));
-        if (previous) {
-          previous.members = previous.members.filter(
-            (x: Identity) =>
-              x.uuid !== identity.uuid && x.name !== identity.name
-          );
-        }
-        const joining = this.channels.get(channelId);
-        await provider.dispatch(identity, 'joined-channel', {previous, joining});
-        await fin.InterApplicationBus.send(
-          identity,
-          joining.iabTopic,
-          joining.context
-        );
-      }
-    );
-    provider.register('get-channel-info', () =>
-      Array.from(this.channels.values())
-    );
     provider.setDefaultAction(() => {
       throw new Error('FDC3 Agent has not implemented this method');
     });
+    provider.register('intent-listener-added', ({intent}, identity) => {
+      this.intentListenerAddedListeners.forEach(element => {
+        element(intent, identity)
+      });
+    })
+  }
+  sendIntentToClient(to: Identity, intent: string, context: any) {
+    this.provider.dispatch(to, 'intent-raised',{intent, context})
   }
   registerOpenHandler = async (
     handler: (name: string, context: any) => void
@@ -306,6 +219,9 @@ class FDC3Agent {
         handler(name, context)
     );
   };
+  onIntentListenerAdded(listener: (intent, identity) => void) {
+    this.intentListenerAddedListeners.push(listener)
+  }
   registerIntentResolver = async (
     handler: (
       intent: string,
@@ -314,16 +230,10 @@ class FDC3Agent {
       identity?: Identity
     ) => Promise<IntentResolution>
   ) => {
-    this.provider.register(
+    await this.provider.register(
       'raise-intent',
       ({ intent, context, target }: any, sender) =>
         handler(intent, context, target, sender)
     );
   };
-  createChannel(info: { id: string }) {
-    const iabTopic = this.name + info.id + Math.random() + Date.now();
-    const members: Identity[] = [];
-    const context: any = null;
-    this.channels.set(info.id, { iabTopic, members, context, ...info });
-  }
 }
