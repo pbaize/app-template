@@ -25,6 +25,8 @@ liveServer.start(serverParams).on('listening', async () => {
             nonPersistent: true //We want OpenFin to exit as our application exists.
         });
 
+        fin.Application.startFromManifest(`http://localhost:${serverParams.port}/app2.json`)
+
         //Once OpenFin exists we shut down the server.
         fin.once('disconnected', process.exit);
     } catch (err) {

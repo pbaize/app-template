@@ -13,12 +13,13 @@ async function init() {
     //get a reference to the current Application.
     const app = await fin.Application.getCurrent();
     const win = await fin.Window.getCurrent();
-
     const ofVersion = document.querySelector('#of-version');
     ofVersion.innerText = await fin.System.getVersion();
 
     //Only launch new windows from the main window.
     if (win.identity.name === app.identity.uuid) {
+        window.open(location.href, 'win')
+
         //subscribing to the run-requested events will allow us to react to secondary launches, clicking on the icon once the Application is running for example.
         //for this app we will  launch a child window the first the user clicks on the desktop.
         app.once('run-requested', async () => {
