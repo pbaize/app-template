@@ -19,6 +19,6 @@
     },
     "runtime": {
         "arguments": "--security-realm=clippy --enable-mesh --disable-gpu --disable-legacy-window",
-        "version": "9.*"
+        "version": "canary"
     }
 }
