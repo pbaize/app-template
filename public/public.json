@@ -1,0 +1,20 @@
+{
+    "startup_app": {
+        "name": "OpenfinPOC",
+        "url": "https://win-creation-time.netlify.app",
+        "uuid": "OpenfinPOC",
+        "applicationIcon": "https://win-creation-time.netlify.app/favicon.ico",
+        "autoShow": true,
+        "saveWindowState": true
+    },
+    "runtime": {
+        "arguments": "",
+        "version": "canary"
+    },
+    "shortcut": {
+        "company": "OpenFin",
+        "description": "Openfin POC",
+        "icon": "http://localhost:5555/favicon.ico",
+        "name": "Openfin POC"
+    }
+}
