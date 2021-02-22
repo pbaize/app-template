@@ -10,17 +10,22 @@ if (typeof fin !== 'undefined') {
 }
 
 
+async function pMapSerial(arr, f) {
+    return await arr.reduce(async (p, ...args) => ([...(await p), await f(...args)]), Promise.resolve([]));
+}
+
 //once the DOM has loaded and the OpenFin API is ready
 async function init() {
-    const times = Array(100).fill().map(openWindow);
+    await fin.Platform.init();
+    const times = await pMapSerial(Array(100).fill(), openWindow);
     const mean = average(times);
     document.querySelector('#perf').innerText = mean;
     const wins = await fin.Application.getCurrentSync().getChildWindows()
     wins.forEach(w => w.close(true))
 }
 
-function openWindow() {
+async function openWindow() {
     let x = performance.now();
-    window.open()
+    await fin.Platform.getCurrentSync().createView({ url: 'about:blank' });
     return performance.now() - x
 }
